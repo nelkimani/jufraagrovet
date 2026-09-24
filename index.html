@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jufra Agrovets — POS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --green:#166534; --dark-green:#14532D; --amber:#F59E0B;
+  --bg:#F8FAFC; --white:#FFFFFF; --dark:#172033;
+  --gray:#64748B; --border:#E2E8F0; --red:#DC2626;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--dark);height:100%}
+#app{display:flex;min-height:100vh}
+.hidden{display:none!important}
+/* login */
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;background:linear-gradient(135deg,var(--dark-green),var(--green))}
+.loginBox{background:var(--white);padding:36px 32px;border-radius:10px;width:320px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.loginBox h1{font-size:20px;margin:0 0 4px;color:var(--dark-green)}
+.loginBox p{color:var(--gray);font-size:13px;margin:0 0 20px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--gray);margin-bottom:4px}
+.field input,.field select{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+.btn{background:var(--green);color:#fff;border:none;padding:11px 16px;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600}
+.btn:hover{background:var(--dark-green)}
+.btn.amber{background:var(--amber);color:#172033}
+.btn.outline{background:transparent;color:var(--green);border:1px solid var(--green)}
+.btn.red{background:var(--red)}
+.btn.block{width:100%}
+.demoNote{font-size:11px;color:var(--gray);margin-top:14px;line-height:1.5;background:#F1F5F9;padding:8px;border-radius:6px}
+/* shell */
+#shell{display:none;width:100%}
+#sidebar{width:210px;background:var(--dark-green);color:#fff;flex-shrink:0;padding:16px 0;min-height:100vh}
+#sidebar h2{font-size:16px;padding:0 18px 14px;margin:0;border-bottom:1px solid rgba(255,255,255,.15)}
+#sidebar .nav-item{padding:11px 18px;cursor:pointer;font-size:14px;opacity:.85;border-left:3px solid transparent}
+#sidebar .nav-item:hover{opacity:1;background:rgba(255,255,255,.06)}
+#sidebar .nav-item.active{opacity:1;border-left-color:var(--amber);background:rgba(255,255,255,.08)}
+#sidebar .userbox{padding:14px 18px;font-size:12px;opacity:.75;border-top:1px solid rgba(255,255,255,.15);margin-top:10px}
+#main{flex:1;padding:20px;min-width:0}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:8px}
+.topbar h1{font-size:19px;margin:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px}
+.card .label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.3px}
+.card .value{font-size:22px;font-weight:700;margin-top:4px}
+.card.warn .value{color:#B45309}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:13px}
+th{background:#F1F5F9;font-size:11px;text-transform:uppercase;color:var(--gray)}
+.badge{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.ok{background:#DCFCE7;color:#166534}
+.badge.warn{background:#FEF3C7;color:#92400E}
+.badge.bad{background:#FEE2E2;color:#991B1B}
+.panel{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+/* POS */
+.pos-wrap{display:flex;gap:14px;flex-wrap:wrap}
+.pos-products{flex:2;min-width:280px}
+.pos-cart{flex:1;min-width:260px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px;height:fit-content}
+.searchbar{padding:10px;border:1px solid var(--border);border-radius:6px;width:100%;margin-bottom:10px;font-size:14px}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;max-height:60vh;overflow-y:auto}
+.prod-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;text-align:left}
+.prod-card:hover{border-color:var(--green)}
+.prod-card .pn{font-size:13px;font-weight:600}
+.prod-card .pp{font-size:13px;color:var(--green);margin-top:4px}
+.prod-card .ps{font-size:11px;color:var(--gray)}
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.qtybtn{width:22px;height:22px;border:1px solid var(--border);background:#fff;border-radius:4px;cursor:pointer}
+.pay-tabs{display:flex;gap:6px;margin:10px 0}
+.pay-tabs button{flex:1;padding:8px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;font-size:12px}
+.pay-tabs button.sel{background:var(--green);color:#fff;border-color:var(--green)}
+.totals-row{display:flex;justify-content:space-between;font-size:13px;margin:3px 0}
+.totals-row.grand{font-size:17px;font-weight:700;border-top:1px solid var(--border);padding-top:8px;margin-top:8px}
+/* receipt */
+#receiptModal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50}
+.receipt58{width:288px;background:#fff;padding:14px;font-family:monospace;font-size:12px}
+.receipt58 hr{border:none;border-top:1px dashed #333}
+.modal-actions{display:flex;gap:8px;margin-top:10px}
+.toast{position:fixed;bottom:16px;right:16px;background:var(--dark);color:#fff;padding:10px 16px;border-radius:6px;font-size:13px;z-index:60}
+@media print{
+  body *{visibility:hidden}
+  #receiptModal, #receiptModal *{visibility:visible}
+  #receiptModal{position:absolute;inset:auto;background:none}
+  .modal-actions{display:none}
+  body.printing-report *{visibility:hidden}
+  body.printing-report #reportPrintArea, body.printing-report #reportPrintArea *{visibility:visible}
+  body.printing-report #reportPrintArea{position:absolute;top:0;left:0;width:100%;padding:20px}
+}
+.mini-table{width:100%;font-size:12px}
+.mini-table th,.mini-table td{padding:5px 6px}
+.period-tabs{display:flex;gap:6px;margin-bottom:12px}
+.period-tabs button{padding:7px 14px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;font-size:13px}
+.period-tabs button.sel{background:var(--green);color:#fff;border-color:var(--green)}
+@media(max-width:760px){
+  #app{flex-direction:column}
+  #sidebar{width:100%;min-height:auto;display:flex;overflow-x:auto;padding:8px 4px}
+  #sidebar h2,#sidebar .userbox{display:none}
+  #sidebar .nav-item{white-space:nowrap;border-left:none;border-bottom:3px solid transparent}
+  #sidebar .nav-item.active{border-bottom-color:var(--amber)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="loginScreen">
+  <div class="loginBox">
+    <h1>Jufra Agrovets</h1>
+    <p>Chuka Town, Tharaka-Nithi · POS System</p>
+    <div class="field"><label>Username</label><input id="loginUser" placeholder="manager or cashier"></div>
+    <div class="field"><label>Password</label><input id="loginPass" type="password"></div>
+    <button class="btn block" onclick="doLogin()">Log in</button>
+    <div class="demoNote">Demo accounts — manager / Jufra@2026 &nbsp;|&nbsp; cashier / Cashier@2026</div>
+  </div>
+</div>
+
+<div id="shell" style="display:flex;width:100%">
+  <div id="sidebar">
+    <h2>Jufra Agrovets</h2>
+    <div class="nav-item" data-v="dashboard" onclick="nav('dashboard')">Dashboard</div>
+    <div class="nav-item" data-v="pos" onclick="nav('pos')">POS / Sale</div>
+    <div class="nav-item" data-v="inventory" onclick="nav('inventory')">Inventory</div>
+    <div class="nav-item" data-v="customers" onclick="nav('customers')">Customers</div>
+    <div class="nav-item" data-v="invoices" onclick="nav('invoices')">Invoices</div>
+    <div class="nav-item" data-v="suppliers" onclick="nav('suppliers')">Suppliers</div>
+    <div class="nav-item" data-v="purchases" onclick="nav('purchases')">Purchases</div>
+    <div class="nav-item" data-v="shift" onclick="nav('shift')">Shift</div>
+    <div class="nav-item" data-v="reports" onclick="nav('reports')">Reports</div>
+    <div class="nav-item" data-v="backup" onclick="nav('backup')">Backup</div>
+    <div class="userbox" id="userbox"></div>
+    <div class="nav-item" onclick="logout()" style="color:#FCA5A5">Log out</div>
+  </div>
+  <div id="main"></div>
+</div>
+
+</div>
+
+<div id="receiptModal" class="hidden"></div>
+<div id="toast" class="toast hidden"></div>
+
+<script>
+/* ---------- DATA LAYER (localStorage-backed, IndexedDB-ready abstraction) ---------- */
+const DB = {
+  get(key, fallback){ const v = localStorage.getItem('jufra_'+key); return v ? JSON.parse(v) : fallback; },
+  set(key, val){ localStorage.setItem('jufra_'+key, JSON.stringify(val)); }
+};
+const CATS = ["Animal Health","Veterinary Medicines","Poultry Products","Crop Protection","Seeds","Fertilizers","Animal Feeds","Farm Supplies"];
+function seedData(){
+  if(DB.get('products')) return;
+  const names = [
+    ["Amoxicillin Injectable 100ml","Veterinary Medicines","Bottle",450,650,40,5],
+    ["Layers Mash 70kg","Poultry Products","Bag",2800,3300,15,3],
+    ["Broiler Starter 50kg","Poultry Products","Bag",2600,3100,12,3],
+    ["Roundup Herbicide 1L","Crop Protection","Bottle",550,780,25,5],
+    ["Maize Seed (DK8031) 2kg","Seeds","Packet",600,850,30,6],
+    ["DAP Fertilizer 50kg","Fertilizers","Bag",3200,3700,20,4],
+    ["CAN Fertilizer 50kg","Fertilizers","Bag",2900,3400,18,4],
+    ["Dairy Meal 70kg","Animal Feeds","Bag",2400,2850,22,4],
+    ["Newcastle Vaccine (100 dose)","Veterinary Medicines","Vial",180,300,50,10],
+    ["Ectoparasite Spray 500ml","Animal Health","Bottle",320,480,35,6],
+    ["Deworming Bolus (Albendazole)","Animal Health","Piece",25,45,200,30],
+    ["Multivitamin Powder 100g","Poultry Products","Sachet",90,150,60,10],
+    ["Wheelbarrow Heavy Duty","Farm Supplies","Piece",3200,4200,6,2],
+    ["Garden Fork","Farm Supplies","Piece",600,900,10,2],
+    ["Cypermethrin Insecticide 1L","Crop Protection","Bottle",480,700,20,4]
+  ];
+  const products = names.map((n,i)=>({id:'P'+(i+1),name:n[0],sku:'SKU'+(1000+i),barcode:'BC'+(200000+i),
+    category:n[1],unit:n[2],buyPrice:n[3],sellPrice:n[4],stock:n[5],minStock:n[6],active:true}));
+  DB.set('products', products);
+  DB.set('customers', [
+    {id:'C1',name:'Walk-in Customer',phone:'',balance:0,creditLimit:0},
+    {id:'C2',name:'Mama Ciku Farm',phone:'0712345001',balance:1200,creditLimit:10000},
+    {id:'C3',name:'Chuka Dairy Coop',phone:'0712345002',balance:0,creditLimit:20000}
+  ]);
+  DB.set('sales', []);
+  DB.set('shifts', []);
+  DB.set('activeShift', null);
+  DB.set('invoices', [
+    {id:'INV-1000', saleId:'-', customerId:'C2', customerName:'Mama Ciku Farm', date:new Date(Date.now()-2*864e5).toISOString(),
+     dueDate:'', notes:'Opening balance', items:[], total:1200, paid:0, balance:1200, status:'Unpaid'}
+  ]);
+  DB.set('suppliers', [
+    {id:'S1', name:'Agrivet Distributors Ltd', phone:'0722000001', kraPin:'P000000001A', balance:0},
+    {id:'S2', name:'Kenya Farm Chemicals', phone:'0722000002', kraPin:'P000000002B', balance:0},
+    {id:'S3', name:'Meru Feeds Co.', phone:'0722000003', kraPin:'P000000003C', balance:8400},
+    {id:'S4', name:'Elgon Seed Company', phone:'0722000004', kraPin:'P000000004D', balance:0},
+    {id:'S5', name:'Tharaka Agro Supplies', phone:'0722000005', kraPin:'P000000005E', balance:0}
+  ]);
+  DB.set('purchases', [
+    {id:'PO-1000', supplierId:'S3', supplierName:'Meru Feeds Co.', date:new Date(Date.now()-5*864e5).toISOString(),
+     items:[], total:8400, paid:0, balance:8400, status:'Unpaid', method:'', notes:'Opening balance'}
+  ]);
+}
+seedData();
+
+let session = DB.get('session', null);
+let cart = [];
+let payMethod = 'cash';
+
+/* ---------- AUTH ---------- */
+const USERS = {manager:{pass:'Jufra@2026', role:'manager', name:'Jesee Murimi'}, cashier:{pass:'Cashier@2026', role:'cashier', name:'Cashier'}};
+function doLogin(){
+  const u = document.getElementById('loginUser').value.trim().toLowerCase();
+  const p = document.getElementById('loginPass').value;
+  const rec = USERS[u];
+  if(!rec || rec.pass !== p){ toast('Invalid username or password'); return; }
+  session = {username:u, role:rec.role, name:rec.name};
+  DB.set('session', session);
+  boot();
+}
+function logout(){ session=null; DB.set('session', null); location.reload(); }
+
+function boot(){
+  if(!session){ document.getElementById('loginScreen').style.display='flex'; document.getElementById('shell').style.display='none'; return; }
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('shell').style.display='flex';
+  document.getElementById('userbox').textContent = session.name+' · '+session.role;
+  if(session.role==='cashier'){ document.querySelector('.nav-item[data-v=inventory]').style.display='none'; document.querySelector('.nav-item[data-v=backup]').style.display='none'; document.querySelector('.nav-item[data-v=suppliers]').style.display='none'; document.querySelector('.nav-item[data-v=purchases]').style.display='none'; }
+  nav('dashboard');
+}
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),2500); }
+function fmt(n){ return 'KES '+Number(n).toLocaleString(undefined,{minimumFractionDigits:0}); }
+function setPageStyle(css){
+  let el = document.getElementById('dynPageStyle');
+  if(!el){ el = document.createElement('style'); el.id='dynPageStyle'; document.head.appendChild(el); }
+  el.textContent = css;
+}
+function printReceiptModal(){ setPageStyle('@page{ size:80mm auto; margin:2mm; }'); window.print(); }
+
+/* ---------- NAV ---------- */
+function nav(view){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el = document.querySelector('.nav-item[data-v="'+view+'"]'); if(el) el.classList.add('active');
+  const main = document.getElementById('main');
+  if(view==='dashboard') renderDashboard(main);
+  else if(view==='pos') renderPOS(main);
+  else if(view==='inventory') renderInventory(main);
+  else if(view==='customers') renderCustomers(main);
+  else if(view==='invoices') renderInvoices(main);
+  else if(view==='suppliers') renderSuppliers(main);
+  else if(view==='purchases') renderPurchases(main);
+  else if(view==='shift') renderShift(main);
+  else if(view==='reports') renderReports(main);
+  else if(view==='backup') renderBackup(main);
+}
+
+/* ---------- PERIOD / ANALYTICS HELPERS ---------- */
+function periodRange(period){
+  const now = new Date(); let start;
+  if(period==='today'){ start=new Date(now.getFullYear(),now.getMonth(),now.getDate()); }
+  else if(period==='week'){ start=new Date(now); start.setDate(now.getDate()-6); start.setHours(0,0,0,0); }
+  else { start=new Date(now.getFullYear(),now.getMonth(),1); }
+  return {start, end:now};
+}
+function salesInPeriod(period){
+  const {start,end} = periodRange(period);
+  return DB.get('sales',[]).filter(s=>{ const d=new Date(s.date); return d>=start && d<=end; });
+}
+function topProducts(salesArr, n){
+  const map={};
+  salesArr.forEach(s=>s.items.forEach(it=>{
+    map[it.name] = map[it.name] || {name:it.name, qty:0, revenue:0};
+    map[it.name].qty += it.qty; map[it.name].revenue += it.qty*it.sellPrice;
+  }));
+  return Object.values(map).sort((a,b)=>b.qty-a.qty).slice(0, n||5);
+}
+function topProductsTable(period, label){
+  const rows = topProducts(salesInPeriod(period), 5);
+  return `<div><h4 style="margin:0 0 6px;font-size:13px">${label}</h4>
+    <table class="mini-table"><thead><tr><th>Product</th><th>Qty</th><th>Revenue</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td>${r.name}</td><td>${r.qty}</td><td>${fmt(r.revenue)}</td></tr>`).join('')||'<tr><td colspan=3>No sales yet</td></tr>'}
+    </tbody></table></div>`;
+}
+
+/* ---------- DASHBOARD ---------- */
+function renderDashboard(main){
+  const sales = DB.get('sales',[]);
+  const today = new Date().toDateString();
+  const todays = sales.filter(s=> new Date(s.date).toDateString()===today);
+  const cash = todays.filter(s=>s.method==='cash').reduce((a,s)=>a+s.total,0);
+  const mpesa = todays.filter(s=>s.method==='mpesa').reduce((a,s)=>a+s.total,0);
+  const credit = todays.filter(s=>s.method==='credit').reduce((a,s)=>a+s.total,0);
+  const totalToday = cash+mpesa+credit;
+  const profit = todays.reduce((a,s)=>a+s.items.reduce((p,it)=>p+(it.sellPrice-it.buyPrice)*it.qty,0),0);
+  const products = DB.get('products',[]);
+  const low = products.filter(p=>p.stock<=p.minStock && p.stock>0).length;
+  const out = products.filter(p=>p.stock<=0).length;
+  const receivables = DB.get('customers',[]).reduce((a,c)=>a+(c.balance||0),0);
+  const payables = DB.get('suppliers',[]).reduce((a,s)=>a+(s.balance||0),0);
+  const shift = DB.get('activeShift', null);
+  main.innerHTML = `
+    <div class="topbar"><h1>Dashboard</h1></div>
+    <div class="cards">
+      <div class="card"><div class="label">Today's Sales</div><div class="value">${fmt(totalToday)}</div></div>
+      <div class="card"><div class="label">Transactions</div><div class="value">${todays.length}</div></div>
+      <div class="card"><div class="label">Cash</div><div class="value">${fmt(cash)}</div></div>
+      <div class="card"><div class="label">M-Pesa</div><div class="value">${fmt(mpesa)}</div></div>
+      <div class="card"><div class="label">Credit</div><div class="value">${fmt(credit)}</div></div>
+      ${session.role==='manager'?`<div class="card"><div class="label">Gross Profit Today</div><div class="value">${fmt(profit)}</div></div>`:''}
+      <div class="card ${low||out?'warn':''}"><div class="label">Low / Out of Stock</div><div class="value">${low} / ${out}</div></div>
+      <div class="card"><div class="label">Outstanding Receivables</div><div class="value">${fmt(receivables)}</div></div>
+      ${session.role==='manager'?`<div class="card ${payables>0?'warn':''}"><div class="label">Payable to Suppliers</div><div class="value">${fmt(payables)}</div></div>`:''}
+      <div class="card"><div class="label">Active Shift</div><div class="value" style="font-size:14px">${shift? shift.cashier+' — open':'None'}</div></div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Sales Trend & Payment Mix</h3>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+        <div style="position:relative;height:220px"><canvas id="salesTrendChart"></canvas></div>
+        <div style="position:relative;height:220px"><canvas id="payMixChart"></canvas></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Fast-Moving Products</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+        ${topProductsTable('today','Top Today')}
+        ${topProductsTable('week','Top This Week')}
+        ${topProductsTable('month','Top This Month')}
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Recent Transactions</h3>
+      <table><thead><tr><th>Receipt</th><th>Time</th><th>Method</th><th>Total</th></tr></thead><tbody>
+      ${sales.slice(-8).reverse().map(s=>`<tr><td>${s.id}</td><td>${new Date(s.date).toLocaleTimeString()}</td><td>${s.method}</td><td>${fmt(s.total)}</td></tr>`).join('')||'<tr><td colspan=4>No sales yet</td></tr>'}
+      </tbody></table>
+    </div>`;
+  renderDashboardCharts(cash, mpesa, credit);
+}
+let salesTrendChart=null, payMixChart=null;
+function renderDashboardCharts(cash, mpesa, credit){
+  if(typeof Chart === 'undefined'){
+    document.getElementById('salesTrendChart').parentElement.innerHTML = '<p style="color:var(--gray);font-size:12px">Charts need an internet connection to load (Chart.js from CDN).</p>';
+    return;
+  }
+  const sales = DB.get('sales',[]);
+  const days=[], totals=[];
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    days.push(d.toLocaleDateString(undefined,{weekday:'short'}));
+    const dayTotal = sales.filter(s=>new Date(s.date).toDateString()===d.toDateString()).reduce((a,s)=>a+s.total,0);
+    totals.push(dayTotal);
+  }
+  if(salesTrendChart) salesTrendChart.destroy();
+  salesTrendChart = new Chart(document.getElementById('salesTrendChart'), {
+    type:'line',
+    data:{labels:days, datasets:[{label:'Sales (KES)', data:totals, borderColor:'#166534', backgroundColor:'rgba(22,101,52,.12)', fill:true, tension:.3}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Last 7 Days'}}}
+  });
+  if(payMixChart) payMixChart.destroy();
+  payMixChart = new Chart(document.getElementById('payMixChart'), {
+    type:'doughnut',
+    data:{labels:['Cash','M-Pesa','Credit'], datasets:[{data:[cash,mpesa,credit], backgroundColor:['#166534','#F59E0B','#DC2626']}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:11}}}, title:{display:true, text:"Today's Payment Mix"}}}
+  });
+}
+
+/* ---------- POS ---------- */
+function renderPOS(main){
+  const shift = DB.get('activeShift', null);
+  if(!shift){ main.innerHTML = `<div class="topbar"><h1>POS / Sale</h1></div><div class="panel">You must start a shift before making sales. <button class="btn" style="margin-left:8px" onclick="nav('shift')">Go to Shift</button></div>`; return; }
+  const products = DB.get('products',[]).filter(p=>p.active);
+  const customers = DB.get('customers',[]);
+  main.innerHTML = `
+  <div class="topbar"><h1>POS / Sale</h1><span style="font-size:12px;color:var(--gray)">Shift: ${shift.cashier}</span></div>
+  <div class="pos-wrap">
+    <div class="pos-products">
+      <input class="searchbar" id="posSearch" placeholder="Search product name, SKU or barcode..." oninput="renderProdGrid()">
+      <div class="prod-grid" id="prodGrid"></div>
+    </div>
+    <div class="pos-cart">
+      <label style="font-size:12px;color:var(--gray)">Customer</label>
+      <select id="posCustomer" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin:4px 0 10px">
+        ${customers.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+      </select>
+      <div id="cartList"></div>
+      <div class="field" style="margin:8px 0"><label>Discount (KES)</label><input type="number" id="posDiscount" placeholder="0" oninput="renderCart()"></div>
+      <div class="totals-row"><span>Subtotal</span><span id="tSub">KES 0</span></div>
+      <div class="totals-row"><span>Discount</span><span id="tDisc">KES 0</span></div>
+      <div class="totals-row grand"><span>Total</span><span id="tTotal">KES 0</span></div>
+      <div class="pay-tabs">
+        <button class="sel" onclick="setPay('cash',this)">Cash</button>
+        <button onclick="setPay('mpesa',this)">M-Pesa</button>
+        <button onclick="setPay('credit',this)">Credit</button>
+      </div>
+      <div id="payFields"></div>
+      <button class="btn amber block" style="margin-top:10px" onclick="checkout()">Complete Sale</button>
+    </div>
+  </div>`;
+  renderProdGrid();
+  renderCart();
+  setPay('cash');
+}
+function renderProdGrid(){
+  const q = (document.getElementById('posSearch')?.value||'').toLowerCase();
+  const products = DB.get('products',[]).filter(p=>p.active && (p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q)||p.barcode.toLowerCase().includes(q)));
+  document.getElementById('prodGrid').innerHTML = products.map(p=>`
+    <div class="prod-card" onclick="addToCart('${p.id}')">
+      <div class="pn">${p.name}</div>
+      <div class="pp">${fmt(p.sellPrice)}</div>
+      <div class="ps">${p.stock} ${p.unit} in stock</div>
+    </div>`).join('') || '<p style="color:var(--gray)">No products found.</p>';
+}
+function addToCart(id){
+  const p = DB.get('products',[]).find(x=>x.id===id);
+  if(!p || p.stock<=0){ toast('Out of stock'); return; }
+  const item = cart.find(i=>i.id===id);
+  if(item){ if(item.qty>=p.stock){ toast('Insufficient stock'); return; } item.qty++; }
+  else cart.push({id:p.id, name:p.name, sellPrice:p.sellPrice, buyPrice:p.buyPrice, qty:1, stock:p.stock});
+  renderCart();
+}
+function changeQty(id, d){
+  const item = cart.find(i=>i.id===id); if(!item) return;
+  item.qty += d;
+  if(item.qty<=0) cart = cart.filter(i=>i.id!==id);
+  else if(item.qty>item.stock){ item.qty=item.stock; toast('Insufficient stock'); }
+  renderCart();
+}
+function renderCart(){
+  const list = document.getElementById('cartList'); if(!list) return;
+  list.innerHTML = cart.map(i=>`
+    <div class="cart-item"><span>${i.name}<br><small style="color:var(--gray)">${fmt(i.sellPrice)} x ${i.qty}</small></span>
+    <span><button class="qtybtn" onclick="changeQty('${i.id}',-1)">-</button> ${i.qty} <button class="qtybtn" onclick="changeQty('${i.id}',1)">+</button></span></div>
+  `).join('') || '<p style="color:var(--gray);font-size:13px">Cart is empty</p>';
+  const sub = cart.reduce((a,i)=>a+i.sellPrice*i.qty,0);
+  const discount = Math.min(sub, parseFloat(document.getElementById('posDiscount')?.value)||0);
+  document.getElementById('tSub').textContent = fmt(sub);
+  document.getElementById('tDisc').textContent = fmt(discount);
+  document.getElementById('tTotal').textContent = fmt(sub-discount);
+  const payDiv = document.getElementById('payFields');
+  if(payDiv && payMethod==='cash' && document.getElementById('tendered')) calcChange();
+}
+function getSubtotal(){ return cart.reduce((a,i)=>a+i.sellPrice*i.qty,0); }
+function getDiscount(){ return Math.min(getSubtotal(), parseFloat(document.getElementById('posDiscount')?.value)||0); }
+function getGrandTotal(){ return getSubtotal()-getDiscount(); }
+function setPay(m, btn){
+  payMethod = m;
+  document.querySelectorAll('.pay-tabs button').forEach(b=>b.classList.remove('sel'));
+  if(btn) btn.classList.add('sel'); else document.querySelector('.pay-tabs button').classList.add('sel');
+  const f = document.getElementById('payFields');
+  if(m==='cash') f.innerHTML = `<div class="field"><label>Amount Tendered</label><input type="number" id="tendered" oninput="calcChange()"></div><div id="changeDue" style="font-size:13px;color:var(--gray)"></div>`;
+  else if(m==='mpesa') f.innerHTML = `<div class="field"><label>M-Pesa Code</label><input id="mpesaCode"></div><div class="field"><label>Phone</label><input id="mpesaPhone"></div>`;
+  else f.innerHTML = `<div class="field"><label>Due Date</label><input type="date" id="creditDue"></div><div class="field"><label>Notes</label><input id="creditNotes"></div>`;
+}
+function calcChange(){
+  const tendered = parseFloat(document.getElementById('tendered')?.value)||0;
+  document.getElementById('changeDue').textContent = 'Change: '+fmt(Math.max(0,tendered-getGrandTotal()));
+}
+function checkout(){
+  if(cart.length===0){ toast('Cart is empty'); return; }
+  const custId = document.getElementById('posCustomer').value;
+  const customers = DB.get('customers',[]);
+  const customer = customers.find(c=>c.id===custId);
+  const subtotal = getSubtotal();
+  const discount = getDiscount();
+  const total = subtotal-discount;
+  let details = {};
+  if(payMethod==='cash'){
+    const tendered = parseFloat(document.getElementById('tendered').value)||0;
+    if(tendered<total){ toast('Amount tendered is less than total'); return; }
+    details = {tendered, change: tendered-total};
+  } else if(payMethod==='mpesa'){
+    details = {code:document.getElementById('mpesaCode').value, phone:document.getElementById('mpesaPhone').value};
+  } else {
+    if(customer.balance + total > customer.creditLimit){ toast('Exceeds customer credit limit'); return; }
+    details = {dueDate:document.getElementById('creditDue').value, notes:document.getElementById('creditNotes').value};
+    customer.balance = (customer.balance||0) + total;
+    DB.set('customers', customers);
+  }
+  const sales = DB.get('sales',[]);
+  const receiptId = 'RCT-'+(1000+sales.length+1);
+  const sale = {id:receiptId, date:new Date().toISOString(), cashier:session.name, method:payMethod, customer:customer.name, items:[...cart], subtotal, discount, total, details};
+  sales.push(sale); DB.set('sales', sales);
+  const products = DB.get('products',[]);
+  cart.forEach(ci=>{ const p = products.find(x=>x.id===ci.id); if(p) p.stock -= ci.qty; });
+  DB.set('products', products);
+  const shift = DB.get('activeShift'); shift.sales.push(sale); DB.set('activeShift', shift);
+  if(payMethod==='credit'){
+    const invoices = DB.get('invoices',[]);
+    const invoiceId = 'INV-'+(1000+invoices.length+1);
+    invoices.push({id:invoiceId, saleId:receiptId, customerId:customer.id, customerName:customer.name, date:sale.date,
+      dueDate:details.dueDate||'', notes:details.notes||'', items:sale.items, total, paid:0, balance:total, status:'Unpaid'});
+    DB.set('invoices', invoices);
+    sale.invoiceId = invoiceId; DB.set('sales', sales);
+  }
+  showReceipt(sale);
+  cart = []; renderPOS(document.getElementById('main'));
+}
+function showReceipt(sale){
+  const m = document.getElementById('receiptModal');
+  m.innerHTML = `<div><div class="receipt58">
+    <div style="text-align:center"><b>JUFRA AGROVETS</b><br>Chuka Town, Tharaka-Nithi<br>Tel: 0725290333<br>${sale.id}<br>${new Date(sale.date).toLocaleString()}</div>
+    <hr>Cashier: ${sale.cashier}<br>Customer: ${sale.customer}<hr>
+    ${sale.items.map(i=>`${i.name}<br>${i.qty} x ${fmt(i.sellPrice)} = ${fmt(i.qty*i.sellPrice)}<br>`).join('')}
+    <hr>Subtotal: ${fmt(sale.subtotal!=null?sale.subtotal:sale.total)}${sale.discount?`<br>Discount: -${fmt(sale.discount)}`:''}
+    <hr><b>Total: ${fmt(sale.total)}</b><br>Method: ${sale.method}
+    ${sale.method==='cash'?`<br>Tendered: ${fmt(sale.details.tendered)}<br>Change: ${fmt(sale.details.change)}`:''}
+    ${sale.method==='mpesa'?`<br>Ref: ${sale.details.code||'-'}`:''}
+    ${sale.method==='credit'?`<br>Invoice: ${sale.invoiceId||'-'}<br>Due: ${sale.details.dueDate||'-'}<br><b>UNPAID — on account</b>`:''}
+    <hr><div style="text-align:center">Thank you for shopping with us!</div>
+  </div>
+  <div class="modal-actions"><button class="btn" onclick="printReceiptModal()">Print</button><button class="btn outline" onclick="document.getElementById('receiptModal').classList.add('hidden')">Close</button></div>
+  </div>`;
+  m.classList.remove('hidden');
+}
+
+/* ---------- INVENTORY ---------- */
+function renderInventory(main){
+  if(session.role!=='manager'){ main.innerHTML = '<div class="panel">Access Denied — manager only.</div>'; return; }
+  const products = DB.get('products',[]);
+  main.innerHTML = `
+  <div class="topbar"><h1>Inventory</h1><button class="btn" onclick="addProductPrompt()">+ Add Product</button></div>
+  <p style="color:var(--gray);font-size:12px;margin-top:-10px">Receiving stock from a supplier? Use <b>Purchases</b> instead of Adjust — it tracks the supplier, cost and payment. Use Adjust here only for corrections (damage, stock counts, etc).</p>
+  <table><thead><tr><th>Name</th><th>Category</th><th>Stock</th><th>Min</th><th>Buy</th><th>Sell</th><th>Value</th><th>Status</th><th></th></tr></thead><tbody>
+  ${products.map(p=>{
+    const status = p.stock<=0?'<span class="badge bad">Out</span>':p.stock<=p.minStock?'<span class="badge warn">Low</span>':'<span class="badge ok">OK</span>';
+    return `<tr><td>${p.name}</td><td>${p.category}</td><td>${p.stock} ${p.unit}</td><td>${p.minStock}</td><td>${fmt(p.buyPrice)}</td><td>${fmt(p.sellPrice)}</td><td>${fmt(p.stock*p.buyPrice)}</td><td>${status}</td>
+    <td><button class="btn outline" style="padding:4px 8px;font-size:11px" onclick="adjustStock('${p.id}')">Adjust</button></td></tr>`;
+  }).join('')}
+  </tbody></table>`;
+}
+function addProductPrompt(){
+  const name = prompt('Product name:'); if(!name) return;
+  const category = prompt('Category (e.g. '+CATS.join(', ')+'):','Farm Supplies');
+  const unit = prompt('Unit (Piece/Bottle/Bag/Kg/Litre...):','Piece');
+  const buyPrice = parseFloat(prompt('Buying price (KES):','0'))||0;
+  const sellPrice = parseFloat(prompt('Selling price (KES):','0'))||0;
+  const stock = parseFloat(prompt('Opening stock:','0'))||0;
+  const minStock = parseFloat(prompt('Minimum stock level:','5'))||0;
+  const products = DB.get('products',[]);
+  products.push({id:'P'+Date.now(), name, sku:'SKU'+Date.now(), barcode:'BC'+Date.now(), category, unit, buyPrice, sellPrice, stock, minStock, active:true});
+  DB.set('products', products);
+  toast('Product added'); renderInventory(document.getElementById('main'));
+}
+function adjustStock(id){
+  const products = DB.get('products',[]);
+  const p = products.find(x=>x.id===id);
+  const delta = parseFloat(prompt('Stock adjustment for "'+p.name+'" (use negative to reduce), current stock: '+p.stock,'0'));
+  if(isNaN(delta)) return;
+  p.stock += delta; DB.set('products', products);
+  toast('Stock updated'); renderInventory(document.getElementById('main'));
+}
+
+/* ---------- CUSTOMERS ---------- */
+function renderCustomers(main){
+  const customers = DB.get('customers',[]);
+  main.innerHTML = `
+  <div class="topbar"><h1>Customers & Receivables</h1><button class="btn" onclick="addCustomerPrompt()">+ Add Customer</button></div>
+  <table><thead><tr><th>Name</th><th>Phone</th><th>Credit Limit</th><th>Balance</th><th></th></tr></thead><tbody>
+  ${customers.map(c=>`<tr><td>${c.name}</td><td>${c.phone||'-'}</td><td>${fmt(c.creditLimit)}</td><td style="color:${c.balance>0?'#B45309':'inherit'}">${fmt(c.balance)}</td>
+  <td>${c.balance>0?`<button class="btn outline" style="padding:4px 8px;font-size:11px" onclick="recordPayment('${c.id}')">Record Payment</button>`:''}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+function addCustomerPrompt(){
+  const name = prompt('Customer name:'); if(!name) return;
+  const phone = prompt('Phone:','');
+  const creditLimit = parseFloat(prompt('Credit limit (KES):','0'))||0;
+  const customers = DB.get('customers',[]);
+  customers.push({id:'C'+Date.now(), name, phone, balance:0, creditLimit});
+  DB.set('customers', customers); toast('Customer added'); renderCustomers(document.getElementById('main'));
+}
+function recordPayment(id){
+  const customers = DB.get('customers',[]);
+  const c = customers.find(x=>x.id===id);
+  const amt = parseFloat(prompt('Payment amount for '+c.name+' (balance: '+fmt(c.balance)+'):','0'))||0;
+  if(amt<=0) return;
+  applyPayment(id, amt);
+  renderCustomers(document.getElementById('main'));
+}
+
+/* ---------- INVOICES ---------- */
+function recalcCustomerBalance(customerId){
+  const customers = DB.get('customers',[]);
+  const c = customers.find(x=>x.id===customerId); if(!c) return;
+  const invoices = DB.get('invoices',[]).filter(i=>i.customerId===customerId);
+  c.balance = invoices.reduce((a,i)=>a+i.balance,0);
+  DB.set('customers', customers);
+}
+function applyPayment(customerId, amount, onlyInvoiceId){
+  const invoices = DB.get('invoices',[]);
+  let remaining = amount;
+  const targets = onlyInvoiceId ? invoices.filter(i=>i.id===onlyInvoiceId) : invoices.filter(i=>i.customerId===customerId && i.balance>0).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const paidAgainst = [];
+  for(const inv of targets){
+    if(remaining<=0) break;
+    const pay = Math.min(remaining, inv.balance);
+    inv.paid += pay; inv.balance -= pay; remaining -= pay;
+    inv.status = inv.balance<=0 ? 'Paid' : 'Partial';
+    paidAgainst.push({id:inv.id, pay});
+  }
+  DB.set('invoices', invoices);
+  recalcCustomerBalance(customerId);
+  const customers = DB.get('customers',[]);
+  const customer = customers.find(c=>c.id===customerId);
+  showPaymentReceipt(customer, amount-Math.max(0,remaining), paidAgainst);
+}
+function showPaymentReceipt(customer, amountApplied, paidAgainst){
+  const m = document.getElementById('receiptModal');
+  m.innerHTML = `<div><div class="receipt58">
+    <div style="text-align:center"><b>JUFRA AGROVETS</b><br>Chuka Town, Tharaka-Nithi<br>Tel: 0725290333<br>PAYMENT RECEIPT<br>${new Date().toLocaleString()}</div>
+    <hr>Customer: ${customer.name}<hr>
+    ${paidAgainst.map(p=>`${p.id}: ${fmt(p.pay)}<br>`).join('')}
+    <hr><b>Amount Paid: ${fmt(amountApplied)}</b><br>Remaining Balance: ${fmt(customer.balance)}
+    <hr><div style="text-align:center">Thank you!</div>
+  </div>
+  <div class="modal-actions"><button class="btn" onclick="printReceiptModal()">Print</button><button class="btn outline" onclick="document.getElementById('receiptModal').classList.add('hidden')">Close</button></div>
+  </div>`;
+  m.classList.remove('hidden');
+}
+let invoiceFilter = 'all';
+function renderInvoices(main){
+  main.innerHTML = `
+  <div class="topbar"><h1>Invoices</h1></div>
+  <div class="period-tabs" id="invTabs">
+    <button class="sel" onclick="setInvoiceFilter('all',this)">All</button>
+    <button onclick="setInvoiceFilter('Unpaid',this)">Unpaid</button>
+    <button onclick="setInvoiceFilter('Partial',this)">Partially Paid</button>
+    <button onclick="setInvoiceFilter('Paid',this)">Paid</button>
+  </div>
+  <div id="invoiceTableWrap"></div>`;
+  buildInvoiceTable();
+}
+function setInvoiceFilter(f, btn){
+  invoiceFilter = f;
+  document.querySelectorAll('#invTabs button').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  buildInvoiceTable();
+}
+function buildInvoiceTable(){
+  let invoices = DB.get('invoices',[]).slice().reverse();
+  if(invoiceFilter!=='all') invoices = invoices.filter(i=>i.status===invoiceFilter);
+  document.getElementById('invoiceTableWrap').innerHTML = `
+  <table><thead><tr><th>Invoice</th><th>Customer</th><th>Date</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead><tbody>
+  ${invoices.map(i=>{
+    const badge = i.status==='Paid'?'<span class="badge ok">Paid</span>':i.status==='Partial'?'<span class="badge warn">Partial</span>':'<span class="badge bad">Unpaid</span>';
+    return `<tr><td>${i.id}</td><td>${i.customerName}</td><td>${new Date(i.date).toLocaleDateString()}</td><td>${i.dueDate||'-'}</td><td>${fmt(i.total)}</td><td>${fmt(i.paid)}</td><td>${fmt(i.balance)}</td><td>${badge}</td>
+    <td>${i.balance>0?`<button class="btn outline" style="padding:4px 8px;font-size:11px" onclick="payInvoicePrompt('${i.id}')">Record Payment</button>`:''}</td></tr>`;
+  }).join('')||'<tr><td colspan=9>No invoices found</td></tr>'}
+  </tbody></table>`;
+}
+function payInvoicePrompt(invoiceId){
+  const inv = DB.get('invoices',[]).find(i=>i.id===invoiceId);
+  const amt = parseFloat(prompt('Payment amount for '+inv.id+' — '+inv.customerName+' (balance: '+fmt(inv.balance)+'):', inv.balance))||0;
+  if(amt<=0) return;
+  applyPayment(inv.customerId, Math.min(amt, inv.balance), invoiceId);
+  buildInvoiceTable();
+}
+
+/* ---------- SUPPLIERS ---------- */
+function recalcSupplierBalance(supplierId){
+  const suppliers = DB.get('suppliers',[]);
+  const s = suppliers.find(x=>x.id===supplierId); if(!s) return;
+  const purchases = DB.get('purchases',[]).filter(p=>p.supplierId===supplierId);
+  s.balance = purchases.reduce((a,p)=>a+p.balance,0);
+  DB.set('suppliers', suppliers);
+}
+function applySupplierPayment(supplierId, amount, onlyPurchaseId){
+  const purchases = DB.get('purchases',[]);
+  let remaining = amount;
+  const targets = onlyPurchaseId ? purchases.filter(p=>p.id===onlyPurchaseId) : purchases.filter(p=>p.supplierId===supplierId && p.balance>0).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const paidAgainst = [];
+  for(const p of targets){
+    if(remaining<=0) break;
+    const pay = Math.min(remaining, p.balance);
+    p.paid += pay; p.balance -= pay; remaining -= pay;
+    p.status = p.balance<=0 ? 'Paid' : 'Partial';
+    paidAgainst.push({id:p.id, pay});
+  }
+  DB.set('purchases', purchases);
+  recalcSupplierBalance(supplierId);
+  const suppliers = DB.get('suppliers',[]);
+  const supplier = suppliers.find(s=>s.id===supplierId);
+  showSupplierPaymentReceipt(supplier, amount-Math.max(0,remaining), paidAgainst);
+}
+function showSupplierPaymentReceipt(supplier, amountApplied, paidAgainst){
+  const m = document.getElementById('receiptModal');
+  m.innerHTML = `<div><div class="receipt58">
+    <div style="text-align:center"><b>JUFRA AGROVETS</b><br>Chuka Town, Tharaka-Nithi<br>Tel: 0725290333<br>SUPPLIER PAYMENT VOUCHER<br>${new Date().toLocaleString()}</div>
+    <hr>Paid To: ${supplier.name}<hr>
+    ${paidAgainst.map(p=>`${p.id}: ${fmt(p.pay)}<br>`).join('')}
+    <hr><b>Amount Paid: ${fmt(amountApplied)}</b><br>Remaining Balance Owed: ${fmt(supplier.balance)}
+    <hr><div style="text-align:center">Recorded by ${session.name}</div>
+  </div>
+  <div class="modal-actions"><button class="btn" onclick="printReceiptModal()">Print</button><button class="btn outline" onclick="document.getElementById('receiptModal').classList.add('hidden')">Close</button></div>
+  </div>`;
+  m.classList.remove('hidden');
+}
+function renderSuppliers(main){
+  if(session.role!=='manager'){ main.innerHTML = '<div class="panel">Access Denied — manager only.</div>'; return; }
+  const suppliers = DB.get('suppliers',[]);
+  main.innerHTML = `
+  <div class="topbar"><h1>Suppliers</h1><button class="btn" onclick="addSupplierPrompt()">+ Add Supplier</button></div>
+  <table><thead><tr><th>Name</th><th>Phone</th><th>KRA PIN</th><th>Balance Owed</th><th></th></tr></thead><tbody>
+  ${suppliers.map(s=>`<tr><td>${s.name}</td><td>${s.phone||'-'}</td><td>${s.kraPin||'-'}</td>
+  <td style="color:${s.balance>0?'#B45309':'inherit'}">${fmt(s.balance)}</td>
+  <td>${s.balance>0?`<button class="btn outline" style="padding:4px 8px;font-size:11px" onclick="recordSupplierPayment('${s.id}')">Record Payment</button>`:''}</td></tr>`).join('')||'<tr><td colspan=5>No suppliers yet</td></tr>'}
+  </tbody></table>`;
+}
+function addSupplierPrompt(){
+  const name = prompt('Supplier name:'); if(!name) return;
+  const phone = prompt('Phone:','');
+  const kraPin = prompt('KRA PIN (optional):','');
+  const suppliers = DB.get('suppliers',[]);
+  suppliers.push({id:'S'+Date.now(), name, phone, kraPin, balance:0});
+  DB.set('suppliers', suppliers); toast('Supplier added'); renderSuppliers(document.getElementById('main'));
+}
+function recordSupplierPayment(id){
+  const suppliers = DB.get('suppliers',[]);
+  const s = suppliers.find(x=>x.id===id);
+  const amt = parseFloat(prompt('Payment amount to '+s.name+' (balance owed: '+fmt(s.balance)+'):','0'))||0;
+  if(amt<=0) return;
+  applySupplierPayment(id, amt);
+  renderSuppliers(document.getElementById('main'));
+}
+
+/* ---------- PURCHASES ---------- */
+let poLines = [];
+function renderPurchases(main){
+  if(session.role!=='manager'){ main.innerHTML = '<div class="panel">Access Denied — manager only.</div>'; return; }
+  poLines = [];
+  const suppliers = DB.get('suppliers',[]);
+  const products = DB.get('products',[]);
+  if(suppliers.length===0){ main.innerHTML = '<div class="topbar"><h1>Purchases / Stock-In</h1></div><div class="panel">Add a supplier first (Suppliers page) before recording a purchase.</div>'; return; }
+  main.innerHTML = `
+  <div class="topbar"><h1>Purchases / Stock-In</h1></div>
+  <div class="panel">
+    <h3 style="margin-top:0">New Purchase</h3>
+    <p style="color:var(--gray);font-size:12px;margin-top:-6px">Use this to receive stock from a supplier. It updates stock levels, product cost, and how much you owe the supplier — all in one step.</p>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+      <div class="field"><label>Supplier</label><select id="poSupplier">${suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+      <div class="field"><label>Date Received</label><input type="date" id="poDate" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end">
+      <div class="field"><label>Product</label><select id="poProduct" onchange="fillPOCost()">${products.map(p=>`<option value="${p.id}" data-cost="${p.buyPrice}">${p.name}</option>`).join('')}</select></div>
+      <div class="field"><label>Qty Received</label><input type="number" id="poQty" min="1" value="1"></div>
+      <div class="field"><label>Unit Cost (KES)</label><input type="number" id="poCost"></div>
+      <button class="btn outline" onclick="addPOLine()" style="margin-bottom:14px">+ Add Line</button>
+    </div>
+    <table style="margin-top:6px"><thead><tr><th>Product</th><th>Qty</th><th>Unit Cost</th><th>Line Total</th><th></th></tr></thead><tbody id="poLinesBody">
+    <tr><td colspan="5" style="color:var(--gray)">No items added yet</td></tr>
+    </tbody></table>
+    <div class="totals-row grand"><span>Total</span><span id="poTotal">KES 0</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+      <div class="field"><label>Amount Paid Now (KES)</label><input type="number" id="poPaid" value="0" oninput="updatePOBalanceNote()"></div>
+      <div class="field"><label>Payment Method</label><select id="poPayMethod"><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="bank">Bank Transfer</option></select></div>
+    </div>
+    <div class="field"><label>Notes / Reference (invoice #, delivery note...)</label><input id="poNotes"></div>
+    <div style="font-size:13px;color:var(--gray);margin-bottom:8px" id="poBalanceNote"></div>
+    <button class="btn amber" onclick="savePurchase()">Save Purchase & Update Stock</button>
+  </div>
+  <div class="panel">
+    <h3 style="margin-top:0">Purchase History</h3>
+    <div id="poHistoryWrap"></div>
+  </div>`;
+  fillPOCost();
+  buildPOHistory();
+}
+function fillPOCost(){
+  const sel = document.getElementById('poProduct');
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('poCost').value = opt ? opt.dataset.cost : 0;
+}
+function addPOLine(){
+  const sel = document.getElementById('poProduct');
+  const productId = sel.value;
+  const opt = sel.options[sel.selectedIndex];
+  const name = opt.textContent;
+  const qty = parseFloat(document.getElementById('poQty').value)||0;
+  const unitCost = parseFloat(document.getElementById('poCost').value)||0;
+  if(qty<=0){ toast('Enter a quantity greater than 0'); return; }
+  const existing = poLines.find(l=>l.productId===productId);
+  if(existing){ existing.qty += qty; existing.unitCost = unitCost; }
+  else poLines.push({productId, name, qty, unitCost});
+  renderPOLines();
+}
+function renderPOLines(){
+  const body = document.getElementById('poLinesBody');
+  body.innerHTML = poLines.map((l,idx)=>`<tr><td>${l.name}</td><td>${l.qty}</td><td>${fmt(l.unitCost)}</td><td>${fmt(l.qty*l.unitCost)}</td>
+    <td><button class="btn outline" style="padding:3px 8px;font-size:11px" onclick="removePOLine(${idx})">Remove</button></td></tr>`).join('') || '<tr><td colspan="5" style="color:var(--gray)">No items added yet</td></tr>';
+  document.getElementById('poTotal').textContent = fmt(poLines.reduce((a,l)=>a+l.qty*l.unitCost,0));
+  updatePOBalanceNote();
+}
+function removePOLine(idx){ poLines.splice(idx,1); renderPOLines(); }
+function updatePOBalanceNote(){
+  const total = poLines.reduce((a,l)=>a+l.qty*l.unitCost,0);
+  const paid = parseFloat(document.getElementById('poPaid')?.value)||0;
+  const balance = Math.max(0, total-paid);
+  const note = document.getElementById('poBalanceNote');
+  if(note) note.textContent = total<=0 ? '' : (balance>0 ? 'Balance owed to supplier after this purchase: '+fmt(balance) : 'This purchase will be fully paid.');
+}
+function savePurchase(){
+  if(poLines.length===0){ toast('Add at least one item to the purchase'); return; }
+  const supplierId = document.getElementById('poSupplier').value;
+  const suppliers = DB.get('suppliers',[]);
+  const supplier = suppliers.find(s=>s.id===supplierId);
+  if(!supplier){ toast('Select a supplier'); return; }
+  const dateVal = document.getElementById('poDate').value;
+  const date = dateVal ? new Date(dateVal).toISOString() : new Date().toISOString();
+  const total = poLines.reduce((a,l)=>a+l.qty*l.unitCost,0);
+  let paid = parseFloat(document.getElementById('poPaid').value)||0;
+  paid = Math.max(0, Math.min(paid, total));
+  const balance = total-paid;
+  const method = document.getElementById('poPayMethod').value;
+  const notes = document.getElementById('poNotes').value;
+  const purchases = DB.get('purchases',[]);
+  const poId = 'PO-'+(1000+purchases.length+1);
+  const purchase = {id:poId, supplierId, supplierName:supplier.name, date, items:[...poLines], total, paid, balance, status: balance<=0?'Paid':(paid>0?'Partial':'Unpaid'), method, notes};
+  purchases.push(purchase); DB.set('purchases', purchases);
+  const products = DB.get('products',[]);
+  poLines.forEach(l=>{ const p = products.find(x=>x.id===l.productId); if(p){ p.stock += l.qty; p.buyPrice = l.unitCost; } });
+  DB.set('products', products);
+  supplier.balance = (supplier.balance||0) + balance;
+  DB.set('suppliers', suppliers);
+  toast('Purchase recorded — stock updated');
+  nav('purchases');
+}
+function buildPOHistory(){
+  const purchases = DB.get('purchases',[]).slice().reverse();
+  document.getElementById('poHistoryWrap').innerHTML = `
+  <table><thead><tr><th>PO#</th><th>Supplier</th><th>Date</th><th>Items</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead><tbody>
+  ${purchases.map(p=>{
+    const badge = p.status==='Paid'?'<span class="badge ok">Paid</span>':p.status==='Partial'?'<span class="badge warn">Partial</span>':'<span class="badge bad">Unpaid</span>';
+    return `<tr><td>${p.id}</td><td>${p.supplierName}</td><td>${new Date(p.date).toLocaleDateString()}</td><td>${p.items.length||'-'} item(s)</td><td>${fmt(p.total)}</td><td>${fmt(p.paid)}</td><td>${fmt(p.balance)}</td><td>${badge}</td>
+    <td>${p.balance>0?`<button class="btn outline" style="padding:3px 8px;font-size:11px" onclick="recordPurchasePayment('${p.id}')">Pay</button>`:''}</td></tr>`;
+  }).join('')||'<tr><td colspan="9" style="color:var(--gray)">No purchases recorded yet</td></tr>'}
+  </tbody></table>`;
+}
+function recordPurchasePayment(id){
+  const purchases = DB.get('purchases',[]);
+  const p = purchases.find(x=>x.id===id);
+  const amt = parseFloat(prompt('Payment amount for '+p.id+' — '+p.supplierName+' (balance: '+fmt(p.balance)+'):', p.balance))||0;
+  if(amt<=0) return;
+  applySupplierPayment(p.supplierId, Math.min(amt, p.balance), id);
+  buildPOHistory();
+}
+
+/* ---------- SHIFT ---------- */
+function renderShift(main){
+  const shift = DB.get('activeShift', null);
+  if(!shift){
+    main.innerHTML = `<div class="topbar"><h1>Shift</h1></div>
+    <div class="panel">
+      <h3 style="margin-top:0">Start Shift</h3>
+      <div class="field"><label>Opening Cash (KES)</label><input id="openCash" type="number"></div>
+      <div class="field"><label>Notes</label><input id="openNotes"></div>
+      <button class="btn" onclick="startShift()">Start Shift</button>
+    </div>`;
+    return;
+  }
+  const sales = shift.sales;
+  const cash = sales.filter(s=>s.method==='cash').reduce((a,s)=>a+s.total,0);
+  const mpesa = sales.filter(s=>s.method==='mpesa').reduce((a,s)=>a+s.total,0);
+  const credit = sales.filter(s=>s.method==='credit').reduce((a,s)=>a+s.total,0);
+  const expected = shift.openingCash + cash;
+  main.innerHTML = `<div class="topbar"><h1>Active Shift — ${shift.cashier}</h1></div>
+  <div class="cards">
+    <div class="card"><div class="label">Opening Cash</div><div class="value">${fmt(shift.openingCash)}</div></div>
+    <div class="card"><div class="label">Cash Sales</div><div class="value">${fmt(cash)}</div></div>
+    <div class="card"><div class="label">M-Pesa Sales</div><div class="value">${fmt(mpesa)}</div></div>
+    <div class="card"><div class="label">Credit Sales</div><div class="value">${fmt(credit)}</div></div>
+    <div class="card"><div class="label">Transactions</div><div class="value">${sales.length}</div></div>
+    <div class="card"><div class="label">Expected Cash</div><div class="value">${fmt(expected)}</div></div>
+  </div>
+  <div class="panel">
+    <h3 style="margin-top:0">End Shift</h3>
+    <div class="field"><label>Actual Cash Counted (KES)</label><input id="actualCash" type="number" oninput="calcVariance(${expected})"></div>
+    <div id="varianceOut" style="font-size:13px;margin-bottom:8px;color:var(--gray)"></div>
+    <div class="field"><label>Notes (required if variance)</label><input id="closeNotes"></div>
+    <button class="btn red" onclick="endShift(${expected})">End Shift</button>
+  </div>`;
+}
+function startShift(){
+  const openingCash = parseFloat(document.getElementById('openCash').value)||0;
+  const shift = {cashier:session.name, openingCash, notes:document.getElementById('openNotes').value, start:new Date().toISOString(), sales:[]};
+  DB.set('activeShift', shift);
+  toast('Shift started'); nav('shift');
+}
+function calcVariance(expected){
+  const actual = parseFloat(document.getElementById('actualCash').value)||0;
+  document.getElementById('varianceOut').textContent = 'Variance: '+fmt(actual-expected);
+}
+function endShift(expected){
+  const actual = parseFloat(document.getElementById('actualCash').value)||0;
+  const variance = actual-expected;
+  const notes = document.getElementById('closeNotes').value;
+  if(variance!==0 && !notes){ toast('Please add a note explaining the cash variance'); return; }
+  const shift = DB.get('activeShift');
+  shift.end = new Date().toISOString(); shift.actualCash=actual; shift.expected=expected; shift.variance=variance; shift.closeNotes=notes;
+  const shifts = DB.get('shifts',[]); shifts.push(shift); DB.set('shifts', shifts);
+  DB.set('activeShift', null);
+  toast('Shift closed'); nav('dashboard');
+}
+
+/* ---------- REPORTS ---------- */
+let reportPeriod = 'today';
+function renderReports(main){
+  main.innerHTML = `
+  <div class="topbar"><h1>Reports</h1><button class="btn" onclick="printReport()">Print Report</button></div>
+  <div class="period-tabs" id="repTabs">
+    <button class="sel" onclick="setReportPeriod('today',this)">Daily</button>
+    <button onclick="setReportPeriod('week',this)">Weekly</button>
+    <button onclick="setReportPeriod('month',this)">Monthly</button>
+  </div>
+  <div id="reportPrintArea"></div>`;
+  buildReport('today');
+}
+function setReportPeriod(p, btn){
+  reportPeriod = p;
+  document.querySelectorAll('#repTabs button').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  buildReport(p);
+}
+function buildReport(period){
+  const sales = salesInPeriod(period);
+  const labels = {today:'Daily Report — '+new Date().toLocaleDateString(), week:'Weekly Report (last 7 days)', month:'Monthly Report — '+new Date().toLocaleString(undefined,{month:'long',year:'numeric'})};
+  const cash = sales.filter(s=>s.method==='cash').reduce((a,s)=>a+s.total,0);
+  const mpesa = sales.filter(s=>s.method==='mpesa').reduce((a,s)=>a+s.total,0);
+  const credit = sales.filter(s=>s.method==='credit').reduce((a,s)=>a+s.total,0);
+  const totalDiscount = sales.reduce((a,s)=>a+(s.discount||0),0);
+  const profit = sales.reduce((a,s)=>a+s.items.reduce((p,it)=>p+(it.sellPrice-it.buyPrice)*it.qty,0),0);
+  const top = topProducts(sales, 10);
+  document.getElementById('reportPrintArea').innerHTML = `
+    <div class="panel">
+      <h2 style="margin-top:0">JUFRA AGROVETS</h2>
+      <p style="color:var(--gray);margin-top:-8px">Chuka Town, Tharaka-Nithi &nbsp;·&nbsp; Tel: 0725290333 &nbsp;·&nbsp; ${labels[period]}</p>
+      <div class="cards">
+        <div class="card"><div class="label">Total Sales</div><div class="value">${fmt(cash+mpesa+credit)}</div></div>
+        <div class="card"><div class="label">Transactions</div><div class="value">${sales.length}</div></div>
+        <div class="card"><div class="label">Cash</div><div class="value">${fmt(cash)}</div></div>
+        <div class="card"><div class="label">M-Pesa</div><div class="value">${fmt(mpesa)}</div></div>
+        <div class="card"><div class="label">Credit</div><div class="value">${fmt(credit)}</div></div>
+        <div class="card"><div class="label">Discounts Given</div><div class="value">${fmt(totalDiscount)}</div></div>
+        ${session.role==='manager'?`<div class="card"><div class="label">Gross Profit</div><div class="value">${fmt(profit)}</div></div>`:''}
+      </div>
+      <h3>Top Products</h3>
+      <table><thead><tr><th>Product</th><th>Qty Sold</th><th>Revenue</th></tr></thead><tbody>
+      ${top.map(t=>`<tr><td>${t.name}</td><td>${t.qty}</td><td>${fmt(t.revenue)}</td></tr>`).join('')||'<tr><td colspan=3>No sales in this period</td></tr>'}
+      </tbody></table>
+      <h3>Transactions</h3>
+      <table><thead><tr><th>Receipt</th><th>Date</th><th>Cashier</th><th>Method</th><th>Total</th></tr></thead><tbody>
+      ${sales.slice().reverse().map(s=>`<tr><td>${s.id}</td><td>${new Date(s.date).toLocaleString()}</td><td>${s.cashier}</td><td>${s.method}</td><td>${fmt(s.total)}</td></tr>`).join('')||'<tr><td colspan=5>No transactions</td></tr>'}
+      </tbody></table>
+    </div>`;
+}
+function printReport(){
+  setPageStyle('@page{ size:auto; margin:10mm; }');
+  document.body.classList.add('printing-report');
+  window.print();
+  setTimeout(()=>document.body.classList.remove('printing-report'), 500);
+}
+
+/* ---------- BACKUP / RESTORE ---------- */
+const BACKUP_KEYS = ['products','customers','sales','shifts','activeShift','invoices','suppliers','purchases'];
+function renderBackup(main){
+  if(session.role!=='manager'){ main.innerHTML = '<div class="panel">Access Denied — manager only.</div>'; return; }
+  const sales = DB.get('sales',[]);
+  main.innerHTML = `
+  <div class="topbar"><h1>Backup & Restore</h1></div>
+  <div class="panel">
+    <h3 style="margin-top:0">Export Backup</h3>
+    <p style="color:var(--gray);font-size:13px">Downloads a single JSON file with all products, customers, sales, invoices and shift history (${sales.length} sales recorded so far). Keep this on a USB stick or email it to yourself regularly.</p>
+    <button class="btn" onclick="exportBackup()">Download Backup (.json)</button>
+  </div>
+  <div class="panel">
+    <h3 style="margin-top:0">Restore Backup</h3>
+    <p style="color:var(--gray);font-size:13px"><b>Warning:</b> restoring will replace all current data on this device with the contents of the backup file. This cannot be undone. Make sure this is really what you want before continuing.</p>
+    <input type="file" id="restoreFile" accept="application/json">
+    <div style="margin-top:10px"><button class="btn red" onclick="restoreBackup()">Restore from File</button></div>
+  </div>`;
+}
+function exportBackup(){
+  const data = {}; BACKUP_KEYS.forEach(k=> data[k]=DB.get(k, null));
+  data._exportedAt = new Date().toISOString();
+  data._business = 'Jufra Agrovets';
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'jufra-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast('Backup downloaded');
+}
+function restoreBackup(){
+  const fileInput = document.getElementById('restoreFile');
+  const file = fileInput.files[0];
+  if(!file){ toast('Choose a backup file first'); return; }
+  if(!confirm('This will REPLACE all current data on this device with the backup file. Continue?')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    let data;
+    try{ data = JSON.parse(e.target.result); }
+    catch(err){ toast('Invalid backup file'); return; }
+    const missing = BACKUP_KEYS.filter(k=>!(k in data));
+    if(missing.length){ toast('File is missing expected data — restore cancelled'); return; }
+    BACKUP_KEYS.forEach(k=> DB.set(k, data[k]));
+    toast('Backup restored — reloading...');
+    setTimeout(()=>location.reload(), 800);
+  };
+  reader.readAsText(file);
+}
+
+boot();
+</script>
+</body>
+</html>
